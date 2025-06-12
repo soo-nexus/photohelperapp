@@ -54,14 +54,16 @@ const Formscreen = ({ navigation }) => {
   const schoolDirectory = [
     "University of California, Berkeley",
     "California State University, Fullerton",
-    "Harvard University",
-    "Stanford University",
-    "Los Angeles High School",
-    "San Francisco High School",
-    "Arcadia High School",
-    "UC Los Angeles",
-    "Cal Poly Pomona",
-    "UC Irvine",
+    "University of California, Davis",
+    "University of California, Los Angeles",
+    "University of California, Irvine",
+    "University of California, Santa Barbara",
+    "California Polytechnic State University",
+    "California State University, Sacramento",
+    "University of California, Riverside",
+    "University of California Merced",
+    "University of California Santa Cruz",
+
     // ... add more schools here
   ];
   const handleSearch = (text) => {
@@ -137,7 +139,7 @@ const Formscreen = ({ navigation }) => {
         return (
           <>
             <Text style={styles.heading}>Where is the location?</Text>
-            {shootquery === "grad" ? (
+            {shootquery == "grad" ? (
               <View style={{ zIndex: 10 }}>
                 <TextInput
                   placeholder="Search for a school"
