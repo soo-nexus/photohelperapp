@@ -40,7 +40,7 @@ def main():
                 .limit(1)    
                 .execute())
     school = response.data[0]["location"]
-    # school = "University of California, Irvine"
+    # school = "University of California, Los Angles"
     locationsTable = supabase.table("locations").select("*").execute()
     run = True
     for value in locationsTable.data:
@@ -71,7 +71,7 @@ def main():
             """Only add websites that have grad and photos, nothing from pinterst or the school website.
             Pinterest you have to log in to and school website don't have good photo spots as its just marketing
             """
-            if "jay" in link:
+            if "jay" in link and "grad" in link and title:
                 results[title] = {"website": link, "locations": [], "Cor": []}
                     
         # For loop to define the locations, gathering data from the webist that we fetched previosuly
@@ -85,7 +85,6 @@ def main():
             a_tage = driver.find_elements(By.TAG_NAME, "a")
             # This parses the location to only include letters from the alphabet, no leading space or symbols(e.g. "-")
             value["locations"] = [re.sub(r"[^a-zA-Z\s]", "", i.text).lstrip() for i in pageText]
-            keys.append(key)
         # Gathers the website link from a_tags that we gathered from the previous for loop     
         hrefs = []
         for i in a_tage:
@@ -115,26 +114,29 @@ def main():
         #     return decimal
 
         # In addition to a progress bar gathers the coordinates and defines the "Cor" values in results
-        for href in tqdm(hrefs[:-1], desc="Scraping coordinates"):
-            #Fetching the website links that we found earlier
+        for i, href in enumerate(hrefs[:-1]):
             driver.get(href)
-            # Wait for the URL to change (using url_changes)
-            while "shorturl" in driver.current_url:
-                time.sleep(0.01)
-            """The reason that there is an else statement here is because when debuging 
-            I found that when clicking  the map and having the red marker, coordinates 
-            show up in the url indicated by an @""" 
-            urlcoor = driver.current_url[
-                driver.current_url.index("@")
-                + 1 : driver.current_url.index(",", driver.current_url.index(",") + 1)
-            ].split(",")
+            # Wait until URL no longer contains 'shorturl'
+            current_url = driver.current_url
+            try:
+                at_pos = current_url.index("@") + 1
+                first_comma = current_url.index(",", at_pos)
+                second_comma = current_url.index(",", first_comma + 1)
+                
+                # Slice from '@' to second comma: gives "latitude,longitude"
+                urlcoor = current_url[at_pos:second_comma]
+                
+                lat_long = urlcoor.split(",")  # ['latitude', 'longitude']
+                for key, value in results.items():
+                    value["Cor"].append([lat_long[0], lat_long[1]])
+            except:
+                print(f"Could not parse coordinates from URL: {current_url}")
 
-            results[keys[href.index(href)]]["Cor"].append([urlcoor[0], urlcoor[1]])
         driver.close()
         # Another progress bar and inserts the information found from webscraping into a supabase table
         # Build the nested dictionary first
         all_locations = defaultdict(dict)
-        for key, values in tqdm(results.items(), desc="Building location dictionary"):
+        for key, values in results.items():
             for index, value in enumerate(values["locations"]):
                 try:
                     location_name = value

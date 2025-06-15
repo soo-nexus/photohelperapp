@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
   Dimensions,
+  PanResponder,
 } from "react-native";
 import {
   SafeAreaProvider,
@@ -50,24 +51,66 @@ export default function MapScreen({ navigation }) {
   const [markerCor, setMarkerCor] = useState<MarkerType[]>([]);
   const [answers, setAnswer] = useState<any[] | null>();
   const [selectedMarker, setSelectedMarker] = useState<MarkerType | null>(null);
-  const slideAnim = useRef(
-    new Animated.Value(Dimensions.get("window").height)
+  const screenHeight = Dimensions.get("window").height;
+  console.log(screenHeight);
+  const sheetHeight = screenHeight; // Full height so it can slide
+
+  const SNAP_POINTS = {
+    collapsed: screenHeight,
+    partial: screenHeight * 0.5,
+    expanded: screenHeight * 0.1,
+  };
+  const slideAnim = useRef(new Animated.Value(SNAP_POINTS.collapsed)).current;
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dy) > 5,
+      onPanResponderGrant: () => {
+        slideAnim.setOffset(slideAnim._value);
+        slideAnim.setValue(0);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        slideAnim.setValue(gestureState.dy);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        slideAnim.flattenOffset();
+        const currentValue = slideAnim._value;
+        const swipeDistance = gestureState.dy;
+
+        let dest = SNAP_POINTS.partial;
+
+        if (swipeDistance > 100) {
+          // Swiped down
+          dest = SNAP_POINTS.collapsed;
+        } else if (swipeDistance < -100) {
+          // Swiped up
+          dest = SNAP_POINTS.expanded;
+        }
+
+        Animated.spring(slideAnim, {
+          toValue: dest,
+          useNativeDriver: false,
+          bounciness: 6,
+        }).start(() => {
+          if (dest === SNAP_POINTS.collapsed) {
+            setSelectedMarker(null); // hide content when sheet is fully closed
+          }
+        });
+      },
+    })
   ).current;
 
   // Animate in
   const openPanel = () => {
-    Animated.timing(slideAnim, {
-      toValue: Dimensions.get("window").height * 0.6, // 40% height from bottom
-      duration: 300,
+    Animated.spring(slideAnim, {
+      toValue: SNAP_POINTS.partial,
       useNativeDriver: false,
     }).start();
   };
 
-  // Animate out
   const closePanel = () => {
-    Animated.timing(slideAnim, {
-      toValue: Dimensions.get("window").height,
-      duration: 300,
+    Animated.spring(slideAnim, {
+      toValue: SNAP_POINTS.collapsed,
       useNativeDriver: false,
     }).start(() => {
       setSelectedMarker(null);
@@ -198,12 +241,6 @@ export default function MapScreen({ navigation }) {
       setLoading(false);
     }, 1000);
   }, []);
-  useEffect(() => {
-    if (markerCor.length > 0) {
-      console.log("markerCor[0]:", markerCor[0]);
-      console.log("markerCor[0].id:", markerCor[0].id);
-    }
-  }, [markerCor]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
@@ -233,6 +270,10 @@ export default function MapScreen({ navigation }) {
                       longitude: marker.latitude,
                     }}
                     title={marker.name}
+                    onPress={() => {
+                      console.log("Marker pressed:", marker); // ✅ Add this
+                      setSelectedMarker(marker);
+                    }}
                   />
                   <Circle
                     center={{
@@ -260,15 +301,37 @@ export default function MapScreen({ navigation }) {
               <Text style={styles.buttonText}>Go Back Home</Text>
             </TouchableOpacity>
           </View>
-          {/* Bottom Sheet
-          <Animated.View style={[stylesMaps.bottomSheet, { top: slideAnim }]}>
+          <Animated.View
+            {...panResponder.panHandlers}
+            style={[
+              stylesMaps.bottomSheet,
+              {
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <View style={{ alignItems: "center", marginBottom: 10 }}>
+              <View
+                style={{
+                  width: 40,
+                  height: 5,
+                  backgroundColor: "#ccc",
+                  borderRadius: 2.5,
+                }}
+              />
+            </View>
             {selectedMarker && (
               <>
                 <Text style={stylesMaps.sheetTitle}>{selectedMarker.name}</Text>
                 <Text>Latitude: {selectedMarker.latitude}</Text>
                 <Text>Longitude: {selectedMarker.longitude}</Text>
                 <TouchableOpacity
-                  onPress={closePanel}
+                  onPress={() => {
+                    Animated.spring(slideAnim, {
+                      toValue: SNAP_POINTS.collapsed,
+                      useNativeDriver: false,
+                    }).start(() => setSelectedMarker(null));
+                  }}
                   style={stylesMaps.closeButton}
                 >
                   <Text style={{ color: "#fff", textAlign: "center" }}>
@@ -277,7 +340,7 @@ export default function MapScreen({ navigation }) {
                 </TouchableOpacity>
               </>
             )}
-          </Animated.View> */}
+          </Animated.View>
         </View>
       )}
     </SafeAreaView>
@@ -305,8 +368,8 @@ const stylesMaps = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    height: "40%",
-    backgroundColor: "#fff",
+    height: 852,
+    backgroundColor: "white",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
