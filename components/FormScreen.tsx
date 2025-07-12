@@ -80,37 +80,52 @@ const Formscreen = ({ navigation }) => {
     setFilteredSchools([]); // close dropdown
   };
   async function handleSubmit() {
-    const { data, error } = await supabase
-      .from("formAnswers")
-      .insert([
-        {
-          shootstyle: shootquery,
-          location: locationquery,
-          date: datequery.toLocaleDateString(),
-          time: timequery.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: false,
-          }),
-          inOut: inoroutquery,
-        },
-      ])
-      .select();
+    // 1. Insert into Supabase FIRST
+    const { error: insertError } = await supabase.from("formAnswers").insert([
+      {
+        shootstyle: shootquery,
+        location: locationquery,
+        date: datequery.toLocaleDateString(),
+        time: timequery.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        }),
+        inOut: inoroutquery,
+      },
+    ]);
+
+    if (insertError) {
+      console.error("❌ Supabase insert failed:", insertError);
+      return; // Don't proceed if insert fails
+    }
+
+    console.log("✅ Supabase insert success");
+
+    // 2. Now trigger the backend to scrape based on latest entry
     try {
-      const response = await fetch("http://192.168.1.234:5000", {
+      const response = await fetch("http://192.168.1.234:5001/run-main", {
         method: "POST",
         headers: {
-          Connection: "keep-alive",
+          "Content-Type": "application/json",
         },
       });
+
       const data = await response.json();
-    } catch (SyntaxError) {}
-    if (error) {
-      console.error("Error adding", error.message);
-    } else {
-      navigation.navigate("Map"); // Go to Map after submit
+
+      if (!response.ok) {
+        console.warn(
+          `⚠️ Backend returned error: ${data.error || "Unknown error"}`
+        );
+      } else {
+        console.log("✅ Backend response:", data);
+      }
+    } catch (err) {
+      console.warn("⚠️ Backend fetch error:", err);
     }
+
+    navigation.navigate("Map");
   }
 
   // UI steps:

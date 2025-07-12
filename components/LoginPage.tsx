@@ -11,6 +11,8 @@ import {
 import { supabase } from "../lib/supabase";
 
 export default function LoginScreen({ navigation }: { navigation: any }) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,12 +35,12 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
       Alert.alert("Success", "Logged in!");
       // Navigate or update session here if needed
     }
+    navigation.navigate("Explore");
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
-
       <TextInput
         style={styles.input}
         placeholder="Email"

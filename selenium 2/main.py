@@ -39,7 +39,7 @@ def main():
                 .order("id",desc=True)
                 .limit(1)    
                 .execute())
-    school = response.data[0]["location"]
+    # school = response.data[0]["location"]
     # school = "University of California, Los Angles"
     locationsTable = supabase.table("locations").select("*").execute()
     run = True
@@ -159,5 +159,10 @@ def main():
             })
             .execute()
         )
+        if response.error:
+            print("❌ Supabase insert error:", response.error)
+        else:
+            print("✅ Inserted into Supabase:", response.data)
+
 if __name__ == "__main__":
     main() 

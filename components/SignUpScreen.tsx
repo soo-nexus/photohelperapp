@@ -13,6 +13,8 @@ import { supabase } from "../lib/supabase";
 export default function SignUpScreen({ navigation }: { navigation: any }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,10 +26,16 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
 
     setLoading(true);
 
-    // 1. Sign up user with email and password
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          username,
+          first_name: firstName,
+          last_name: lastName,
+        },
+      },
     });
 
     if (error) {
@@ -36,35 +44,41 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
       return;
     }
 
-    const userId = data.user?.id;
+    // Supabase requires email confirmation by default, so user ID might be null
+    const userId = data.user?.id || data.session?.user?.id;
+
+    setLoading(false); // 🛑 Must stop loading no matter what
 
     if (userId) {
-      // 2. Insert username into your 'profiles' table (adjust table/columns as needed)
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert([{ id: userId, username: username, user_id: userId }]);
-
-      setLoading(false);
-
-      if (profileError) {
-        Alert.alert("Profile Error", profileError.message);
-      } else {
-        Alert.alert(
-          "Success",
-          "Account created! Please check your email to verify."
-        );
-        navigation.goBack(); // Return to login screen after sign up
-      }
+      Alert.alert("Success", "Account created and logged in!");
+      navigation.goBack(); // Or navigate to Home if desired
     } else {
-      setLoading(false);
-      Alert.alert("Error", "User ID missing after sign up");
+      Alert.alert(
+        "Success",
+        "Check your email to confirm your account before logging in."
+      );
+      navigation.goBack();
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Sign Up</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="First Name"
+        value={firstName}
+        onChangeText={setFirstName}
+        editable={!loading}
+      />
 
+      <TextInput
+        style={styles.input}
+        placeholder="Last Name"
+        value={lastName}
+        onChangeText={setLastName}
+        editable={!loading}
+      />
       <TextInput
         style={styles.input}
         placeholder="Username"

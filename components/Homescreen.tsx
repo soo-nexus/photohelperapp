@@ -1,98 +1,74 @@
-import React, { useState } from "react";
+import React from "react";
+import { useRoute } from "@react-navigation/native";
 import { Image } from "expo-image";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  SafeAreaProvider,
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import {
-  Alert,
-  Button,
+  StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+
 export default function HomeScreen({ navigation }) {
+  const route = useRoute();
+  const hideStatusBar = route.name === "Home";
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+      <StatusBar hidden={hideStatusBar} />
       <View style={styles.container}>
+        {/* Image */}
         <Image
-          style={{ width: 100, height: 100 }}
-          source={require("../assets/360_F_107579101_QVlTG43Fwg9Q6ggwF436MPIBTVpaKKtb.jpg")}
+          style={styles.image}
+          source={require("../assets/167a79de-b859-40f7-b2c0-84763a4ec4d6.png")}
           contentFit="cover"
           transition={1000}
         />
-        <Text style={styles.title}>[Insert App Name]</Text>
-        <Text style={styles.subtitle}>for photographers everywhere</Text>
 
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: "#007bff" }]}
-            onPress={() => navigation.navigate("Login")}
-          >
-            <Text style={styles.buttonText}>Login</Text>
-          </TouchableOpacity>
+        {/* Centered Text */}
+        <Text style={styles.description}>
+          An app to help you capture better graduation photos
+        </Text>
 
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: "#28a745" }]}
-            onPress={() => navigation.navigate("SignUp")}
-          >
-            <Text style={styles.buttonText}>Sign Up</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.exploreButton]}
-          onPress={() => navigation.navigate("Explore")}
+        {/* Button */}
+        {/* <TouchableOpacity
+          style={styles.exploreButton}
+          onPress={() => navigation.replace("FirstInstruction")}
         >
-          <Text style={styles.exploreText}>Go to Explore</Text>
-        </TouchableOpacity>
+          <Text style={styles.exploreText}>Get Started</Text>
+        </TouchableOpacity> */}
       </View>
     </SafeAreaView>
   );
 }
+
+// 📐 Styling
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-evenly",
     paddingHorizontal: 20,
+    backgroundColor: "#fff",
+    zIndex: 10,
   },
-  title: {
-    fontSize: 18,
-    marginTop: 10,
-    fontWeight: "bold",
+  image: {
+    width: 300,
+    height: 300,
+    resizeMode: "contain",
   },
-  subtitle: {
-    marginBottom: 20,
-    color: "#666",
-  },
-  buttonRow: {
-    flexDirection: "row",
-    width: "100%",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  button: {
-    flex: 1,
-    marginHorizontal: 5,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
+  description: {
+    textAlign: "center",
+    fontSize: 22,
+    fontWeight: "500",
+    color: "#333",
+    paddingHorizontal: 10,
   },
   exploreButton: {
-    marginTop: 10,
-    backgroundColor: "#6c757d",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    backgroundColor: "#438e6c",
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 10,
   },
   exploreText: {
     color: "#fff",

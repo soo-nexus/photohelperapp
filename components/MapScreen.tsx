@@ -1,5 +1,7 @@
 import { Image } from "expo-image";
+import Markdown from "react-native-markdown-display";
 import React, { useState, useEffect, useRef } from "react";
+import { ScrollView } from "react-native";
 import { Loader } from "@googlemaps/js-api-loader";
 import MapView, { PROVIDER_GOOGLE, Marker, Circle } from "react-native-maps";
 import * as Location from "expo-location";
@@ -50,11 +52,16 @@ export default function MapScreen({ navigation }) {
   const [geoCode, setgeoCode] = useState<GeoCoord | null>(null);
   const [markerCor, setMarkerCor] = useState<MarkerType[]>([]);
   const [answers, setAnswer] = useState<any[] | null>();
+  const [llmResponse, setLlmResponse] = useState("");
+  const [llmLoading, setLlmLoading] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState<MarkerType | null>(null);
+  const [markerTips, setMarkerTips] = useState<{ [id: string]: string }>({});
   const screenHeight = Dimensions.get("window").height;
+  const dragY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef(null);
+  const scrollOffsetY = useRef(0);
+  const scrollY = useRef(0);
   console.log(screenHeight);
-  const sheetHeight = screenHeight; // Full height so it can slide
-
   const SNAP_POINTS = {
     collapsed: screenHeight,
     partial: screenHeight * 0.5,
@@ -63,29 +70,24 @@ export default function MapScreen({ navigation }) {
   const slideAnim = useRef(new Animated.Value(SNAP_POINTS.collapsed)).current;
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dy) > 5,
-      onPanResponderGrant: () => {
-        slideAnim.setOffset(slideAnim._value);
-        slideAnim.setValue(0);
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dy) > 5; // respond to both up and down drag
       },
+      onPanResponderGrant: () => {
+        dragY.setValue(0);
+        slideAnim.setOffset(slideAnim._value);
+      },
+
       onPanResponderMove: (_, gestureState) => {
         slideAnim.setValue(gestureState.dy);
       },
+
       onPanResponderRelease: (_, gestureState) => {
         slideAnim.flattenOffset();
-        const currentValue = slideAnim._value;
-        const swipeDistance = gestureState.dy;
 
         let dest = SNAP_POINTS.partial;
-
-        if (swipeDistance > 100) {
-          // Swiped down
-          dest = SNAP_POINTS.collapsed;
-        } else if (swipeDistance < -100) {
-          // Swiped up
-          dest = SNAP_POINTS.expanded;
-        }
+        if (gestureState.dy > 100) dest = SNAP_POINTS.collapsed;
+        else if (gestureState.dy < -100) dest = SNAP_POINTS.expanded;
 
         Animated.spring(slideAnim, {
           toValue: dest,
@@ -93,12 +95,33 @@ export default function MapScreen({ navigation }) {
           bounciness: 6,
         }).start(() => {
           if (dest === SNAP_POINTS.collapsed) {
-            setSelectedMarker(null); // hide content when sheet is fully closed
+            setSelectedMarker(null);
           }
         });
       },
     })
   ).current;
+
+  function useTypingEffect(text: string, speed = 20) {
+    const [displayedText, setDisplayedText] = useState("");
+
+    useEffect(() => {
+      setDisplayedText("");
+      if (!text) return;
+
+      let index = 0;
+      const interval = setInterval(() => {
+        setDisplayedText((prev) => prev + text.charAt(index));
+        index++;
+        if (index >= text.length) clearInterval(interval);
+      }, speed);
+
+      return () => clearInterval(interval);
+    }, [text, speed]);
+
+    return displayedText;
+  }
+  const typedResponse = useTypingEffect(llmResponse);
 
   // Animate in
   const openPanel = () => {
@@ -122,7 +145,53 @@ export default function MapScreen({ navigation }) {
       openPanel();
     }
   }, [selectedMarker]);
+  useEffect(() => {
+    if (!selectedMarker || !selectedMarker.id) return;
 
+    const markerKey = selectedMarker.id;
+
+    // If tip already exists, reuse it
+    if (markerTips[markerKey]) {
+      setLlmResponse(markerTips[markerKey]);
+      return;
+    }
+
+    async function fetchLlmTips() {
+      setLlmLoading(true);
+      try {
+        const response = await fetch("http://192.168.1.234:5001/generate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            camera: "Sony a6700",
+            location: selectedMarker!.name,
+            additional_equipment: "None",
+          }),
+        });
+
+        const data = await response.json();
+        const tip = data.tip || data.response || data.output || "No tip found.";
+
+        setMarkerTips((prev) => ({
+          ...prev,
+          [markerKey]: tip,
+        }));
+
+        setLlmResponse(tip);
+      } catch (error) {
+        console.error("❌ Error fetching tip:", error);
+        setLlmResponse("Failed to fetch tips.");
+      } finally {
+        setLlmLoading(false);
+      }
+    }
+
+    fetchLlmTips();
+  }, [selectedMarker]);
+
+  const cleanedMarkdown = llmResponse.replace(/```/g, "");
   useEffect(() => {
     async function readData() {
       const { data: formAnswers1 } = await supabase
@@ -146,12 +215,21 @@ export default function MapScreen({ navigation }) {
         }
       }
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
           loc
-        )}&key=AIzaSyDiOmGm9Gq9SmJKWZ4A62yU7CS3TpvBGJY`
+        )}`,
+        {
+          headers: {
+            "User-Agent": "photohelperapp/1.0 (your@email.com)",
+            "Accept-Language": "en",
+          },
+        }
       );
       const data = await response.json();
-      const geocodedLocation = data.results[0].geometry.location;
+      const geocodedLocation = {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+      };
 
       const R = 6378137;
       const distance = 1609.34 * 0.1;
@@ -220,11 +298,12 @@ export default function MapScreen({ navigation }) {
         for (const locName in schoolLocations) {
           const coords = schoolLocations[locName];
           newMarkers.push({
-            id: i.toString(),
+            id: i.toString(), // ✅ make sure i is defined
             name: locName,
             latitude: coords.lat,
             longitude: coords.long,
           });
+
           i++;
         }
         setMarkerCor(newMarkers);
@@ -241,7 +320,21 @@ export default function MapScreen({ navigation }) {
       setLoading(false);
     }, 1000);
   }, []);
-
+  const markdownStyles = {
+    code_block: {
+      backgroundColor: "transparent",
+      padding: 0,
+      margin: 0,
+    },
+    fence: {
+      backgroundColor: "transparent",
+      padding: 0,
+      margin: 0,
+    },
+  };
+  const sanitizeMarkdown = llmResponse
+    .replace(/^\s{4}/gm, "") // remove leading 4-space indent
+    .replace(/```/g, ""); // remove triple backticks
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
       {loading ? (
@@ -302,44 +395,69 @@ export default function MapScreen({ navigation }) {
             </TouchableOpacity>
           </View>
           <Animated.View
-            {...panResponder.panHandlers}
             style={[
               stylesMaps.bottomSheet,
               {
-                transform: [{ translateY: slideAnim }],
+                transform: [{ translateY: slideAnim }], // 👈 This lifts it above the taskbar
               },
             ]}
           >
-            <View style={{ alignItems: "center", marginBottom: 10 }}>
-              <View
-                style={{
-                  width: 40,
-                  height: 5,
-                  backgroundColor: "#ccc",
-                  borderRadius: 2.5,
+            {/* DRAGGABLE GRIP + HEADER AREA */}
+            <View style={{ flex: 1 }}>
+              <View {...panResponder.panHandlers}>
+                <View style={{ alignItems: "center", marginBottom: 10 }}>
+                  <View
+                    style={{
+                      width: 40,
+                      height: 5,
+                      backgroundColor: "#ccc",
+                      borderRadius: 2.5,
+                      marginTop: 5,
+                    }}
+                  />
+                </View>
+
+                {selectedMarker && (
+                  <View style={{ marginBottom: 10 }}>
+                    <Text style={stylesMaps.sheetTitle}>
+                      {selectedMarker.name}
+                    </Text>
+                    <Text>Latitude: {selectedMarker.latitude}</Text>
+                    <Text>Longitude: {selectedMarker.longitude}</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* SCROLLABLE CONTENT */}
+              <ScrollView
+                ref={scrollRef}
+                style={{ paddingBottom: 40 }}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
+                onScroll={(e) => {
+                  scrollOffsetY.current = e.nativeEvent.contentOffset.y;
                 }}
-              />
-            </View>
-            {selectedMarker && (
-              <>
-                <Text style={stylesMaps.sheetTitle}>{selectedMarker.name}</Text>
-                <Text>Latitude: {selectedMarker.latitude}</Text>
-                <Text>Longitude: {selectedMarker.longitude}</Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    Animated.spring(slideAnim, {
-                      toValue: SNAP_POINTS.collapsed,
-                      useNativeDriver: false,
-                    }).start(() => setSelectedMarker(null));
-                  }}
-                  style={stylesMaps.closeButton}
-                >
-                  <Text style={{ color: "#fff", textAlign: "center" }}>
-                    Close
+              >
+                {llmLoading ? (
+                  <Text style={{ marginVertical: 10, fontStyle: "italic" }}>
+                    Loading tips...
                   </Text>
-                </TouchableOpacity>
-              </>
-            )}
+                ) : selectedMarker && markerTips[selectedMarker.id] ? (
+                  <Markdown
+                    style={{
+                      body: { backgroundColor: "transparent", padding: 0 },
+                      // You can also customize other markdown elements here
+                    }}
+                  >
+                    {markerTips[selectedMarker.id]
+                      .replace(/^\s{4}/gm, "")
+                      .replace(/```/g, "")}
+                  </Markdown>
+                ) : (
+                  <Text>No tips available.</Text>
+                )}
+              </ScrollView>
+            </View>
           </Animated.View>
         </View>
       )}
@@ -368,7 +486,8 @@ const stylesMaps = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    height: 852,
+    top: 0, // ✅ Let translateY handle where it starts
+    bottom: 0, // ✅ Fill to bottom of screen
     backgroundColor: "white",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
