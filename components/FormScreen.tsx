@@ -28,14 +28,15 @@ const Formscreen = ({ navigation }) => {
   const [inoroutquery, setInOrOutQuery] = useState<Boolean | null | String>(
     null
   );
-  const [oncampusquery, setOnCampusQuery] = useState<Boolean | null>(null);
-  const [gradCollege, setGradCollege] = useState("");
+  const [camera, setCamera] = useState("");
+  const [additionalGear, setAdditionalGear] = useState("");
 
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
 
   const [search, setSearch] = useState("");
   const [filteredSchools, setFilteredSchools] = useState<string[]>([]);
+
   const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === "ios");
     if (selectedDate) {
@@ -63,9 +64,8 @@ const Formscreen = ({ navigation }) => {
     "University of California, Riverside",
     "University of California Merced",
     "University of California Santa Cruz",
-
-    // ... add more schools here
   ];
+
   const handleSearch = (text) => {
     setSearch(text);
     const filtered = schoolDirectory.filter((school) =>
@@ -77,33 +77,99 @@ const Formscreen = ({ navigation }) => {
   const handleSelect = (school) => {
     setlocationQuery(school);
     setSearch(school);
-    setFilteredSchools([]); // close dropdown
+    setFilteredSchools([]);
   };
+
   async function handleSubmit() {
-    // 1. Insert into Supabase FIRST
+    // Format date and time
+    const formattedDate = datequery.toLocaleDateString();
+    const formattedTime = timequery.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+
+    // Geocode location
+    const geocodeRes = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        locationquery
+      )}`,
+      {
+        headers: {
+          "User-Agent": "photohelperapp/1.0 (support@example.com)",
+          "Accept-Language": "en",
+        },
+      }
+    );
+
+    const geocodeData = await geocodeRes.json();
+
+    if (!geocodeData || geocodeData.length === 0) {
+      console.error("❌ Geocoding failed. No results found.");
+      return;
+    }
+
+    const lat = parseFloat(geocodeData[0].lat);
+    const lon = parseFloat(geocodeData[0].lon);
+
+    // Format date for Visual Crossing API
+    const targetDateStr = `${datequery.getFullYear()}-${String(
+      datequery.getMonth() + 1
+    ).padStart(2, "0")}-${String(datequery.getDate()).padStart(2, "0")}`;
+
+    let weatherSummary = null;
+
+    try {
+      const API_KEY = "85WPBP76DTTS4BH64DBYEPN5Z"; // Replace this
+      const weatherUrl = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${lat},${lon}/${targetDateStr}?unitGroup=us&include=days&key=${API_KEY}`;
+
+      const weatherRes = await fetch(weatherUrl);
+      const contentType = weatherRes.headers.get("content-type");
+      const rawText = await weatherRes.text();
+
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("❌ Unexpected response:", rawText);
+      } else {
+        const weatherData = JSON.parse(rawText);
+        if (weatherData.days && weatherData.days.length > 0) {
+          const day = weatherData.days[0];
+
+          // Generate a single text weather summary
+          weatherSummary = `${day.conditions} with a high of ${
+            day.tempmax
+          }°F, low of ${day.tempmin}°F, and ${
+            day.precip || 0
+          }in of precipitation.`;
+        } else {
+          console.warn("⚠️ No weather data found for that date.");
+        }
+      }
+    } catch (err) {
+      console.error("❌ Error fetching weather data:", err);
+    }
+
+    // Insert into Supabase with weather summary
     const { error: insertError } = await supabase.from("formAnswers").insert([
       {
-        shootstyle: shootquery,
         location: locationquery,
-        date: datequery.toLocaleDateString(),
-        time: timequery.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        }),
+        date: formattedDate,
+        time: formattedTime,
         inOut: inoroutquery,
+        camera: camera,
+        gear: additionalGear,
+        weather_summary: weatherSummary,
       },
     ]);
 
     if (insertError) {
       console.error("❌ Supabase insert failed:", insertError);
-      return; // Don't proceed if insert fails
+      return;
     }
 
     console.log("✅ Supabase insert success");
 
-    // 2. Now trigger the backend to scrape based on latest entry
+    // Trigger backend
     try {
       const response = await fetch("http://192.168.1.234:5001/run-main", {
         method: "POST",
@@ -112,95 +178,79 @@ const Formscreen = ({ navigation }) => {
         },
       });
 
-      const data = await response.json();
+      const backendData = await response.json();
 
       if (!response.ok) {
         console.warn(
-          `⚠️ Backend returned error: ${data.error || "Unknown error"}`
+          `⚠️ Backend returned error: ${backendData.error || "Unknown error"}`
         );
       } else {
-        console.log("✅ Backend response:", data);
+        console.log("✅ Backend response:", backendData);
       }
     } catch (err) {
       console.warn("⚠️ Backend fetch error:", err);
     }
 
+    // Navigate to Map
     navigation.navigate("Map");
   }
 
-  // UI steps:
   const renderStep = () => {
     switch (step) {
       case 1:
         return (
           <>
-            <Text style={styles.heading}>What is your shoot type?</Text>
-            <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={shootquery}
-                onValueChange={(itemValue) => setshootQuery(itemValue)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select shoot type..." value="" />
-                <Picker.Item label="Wedding" value="wedding" />
-                <Picker.Item label="Street" value="street" />
-                <Picker.Item label="Portrait" value="portrait" />
-                <Picker.Item label="Grad" value="grad" />
-              </Picker>
-            </View>
+            <Text style={styles.heading}>What camera do you have?</Text>
+            <TextInput
+              placeholder="e.g. Canon R5"
+              value={camera}
+              onChangeText={setCamera}
+              style={styles.input}
+            />
           </>
         );
       case 2:
         return (
           <>
-            <Text style={styles.heading}>Where is the location?</Text>
-            {shootquery == "grad" ? (
-              <View style={{ zIndex: 10 }}>
-                <TextInput
-                  placeholder="Search for a school"
-                  value={search}
-                  onChangeText={handleSearch}
-                  style={{
-                    height: 40,
-                    borderColor: "gray",
-                    borderWidth: 1,
-                    paddingHorizontal: 8,
-                    borderRadius: 5,
-                  }}
-                />
-                {filteredSchools.length > 0 && (
-                  <FlatList
-                    data={filteredSchools}
-                    keyExtractor={(item) => item}
-                    style={{
-                      position: "absolute",
-                      top: 45,
-                      backgroundColor: "white",
-                      width: "100%",
-                      maxHeight: 200,
-                      borderColor: "gray",
-                      borderWidth: 1,
-                      borderRadius: 5,
-                    }}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity onPress={() => handleSelect(item)}>
-                        <Text style={{ padding: 10 }}>{item}</Text>
-                      </TouchableOpacity>
-                    )}
-                  />
-                )}
-              </View>
-            ) : (
-              <TextInput
-                placeholder="Location"
-                value={locationquery}
-                onChangeText={setlocationQuery}
-                style={styles.input}
-              />
-            )}
+            <Text style={styles.heading}>
+              What additional gear do you have?
+            </Text>
+            <TextInput
+              placeholder="e.g. Tripod, Gimbal, 50mm lens"
+              value={additionalGear}
+              onChangeText={setAdditionalGear}
+              style={styles.input}
+              multiline
+            />
           </>
         );
       case 3:
+        return (
+          <>
+            <Text style={styles.heading}>Where is the location?</Text>
+            <View style={{ zIndex: 10 }}>
+              <TextInput
+                placeholder="Search for a school"
+                value={search}
+                onChangeText={handleSearch}
+                style={styles.input}
+              />
+              {filteredSchools.length > 0 && (
+                <FlatList
+                  data={filteredSchools}
+                  keyExtractor={(item) => item}
+                  style={styles.dropdown}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity onPress={() => handleSelect(item)}>
+                      <Text style={{ padding: 10 }}>{item}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+            </View>
+          </>
+        );
+      case 4:
         return (
           <>
             <Text style={styles.heading}>Select the date</Text>
@@ -221,7 +271,7 @@ const Formscreen = ({ navigation }) => {
             )}
           </>
         );
-      case 4:
+      case 5:
         return (
           <>
             <Text style={styles.heading}>Select the time</Text>
@@ -247,7 +297,7 @@ const Formscreen = ({ navigation }) => {
             )}
           </>
         );
-      case 5:
+      case 6:
         return (
           <>
             <Text style={styles.heading}>
@@ -280,26 +330,14 @@ const Formscreen = ({ navigation }) => {
     }
   };
 
-  const isLastStep = () => {
-    if (shootquery === "grad") {
-      return step === 5;
-    } else {
-      return step === 5;
-    }
-  };
+  const isLastStep = () => step === 6;
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
       <View style={styles.container}>
         {renderStep()}
 
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginTop: 20,
-          }}
-        >
+        <View style={styles.navigationRow}>
           {step > 1 && (
             <TouchableOpacity
               style={styles.navButton}
@@ -379,6 +417,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
     textAlign: "center",
+  },
+  navigationRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+  },
+  dropdown: {
+    position: "absolute",
+    top: 45,
+    backgroundColor: "white",
+    width: "100%",
+    maxHeight: 200,
+    borderColor: "gray",
+    borderWidth: 1,
+    borderRadius: 5,
+    zIndex: 20,
   },
 });
 

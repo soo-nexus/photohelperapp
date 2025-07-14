@@ -22,7 +22,8 @@ def generate():
     camera = data.get("camera", "Sony a6700")
     location = data.get("location", "California State University Fullerton Pollak Library")
     additional_equipment = data.get("additional_equipment", "None")
-
+    weather = data.get("weather", None)
+    print(weather)
     prompt = f"""
     Avoid using ``` or any special formating:
     Camera: {camera}  

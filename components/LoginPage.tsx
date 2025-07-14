@@ -35,7 +35,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
       Alert.alert("Success", "Logged in!");
       // Navigate or update session here if needed
     }
-    navigation.navigate("Explore");
+    navigation.navigate("Form");
   };
 
   return (

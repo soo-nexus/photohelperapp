@@ -56,6 +56,7 @@ export default function MapScreen({ navigation }) {
   const [llmLoading, setLlmLoading] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState<MarkerType | null>(null);
   const [markerTips, setMarkerTips] = useState<{ [id: string]: string }>({});
+  const [weatherQuery, setWeatherQuery] = useState("");
   const screenHeight = Dimensions.get("window").height;
   const dragY = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef(null);
@@ -168,9 +169,9 @@ export default function MapScreen({ navigation }) {
             camera: "Sony a6700",
             location: selectedMarker!.name,
             additional_equipment: "None",
+            weather: weatherQuery,
           }),
         });
-
         const data = await response.json();
         const tip = data.tip || data.response || data.output || "No tip found.";
 
@@ -203,6 +204,8 @@ export default function MapScreen({ navigation }) {
         .order("id", { ascending: false })
         .limit(1);
       const loc = formAnswers?.at(0)?.["location"];
+      const weather = formAnswers?.at(0)?.["weather_summary"];
+      setWeatherQuery(weather);
       setLocation(loc);
       for (const value of formAnswers1!) {
         const locations = value.locations;

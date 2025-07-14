@@ -3,7 +3,6 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import HomeScreen from "../components/Homescreen";
-import ExploreScreen from "../components/ExploreScreen";
 import FormScreen from "../components/FormScreen";
 import MapScreen from "../components/MapScreen";
 import ChatScreen from "../components/ChatScreen";
@@ -19,7 +18,6 @@ export default function MainStack() {
     <Stack.Navigator initialRouteName="Login">
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
-      <Stack.Screen name="Explore" component={ExploreScreen} />
       <Stack.Screen name="Form" component={FormScreen} />
       <Stack.Screen name="Map" component={MapScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
