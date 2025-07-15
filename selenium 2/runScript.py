@@ -23,44 +23,76 @@ def generate():
     location = data.get("location", "California State University Fullerton Pollak Library")
     additional_equipment = data.get("additional_equipment", "None")
     weather = data.get("weather", None)
-    print(weather)
+    time = data.get("time", None)
     prompt = f"""
-    Avoid using ``` or any special formating:
-    Camera: {camera}  
-    Locations: {location}
-    Additional Equipment: {additional_equipment}  
+    ## 📷 Portrait Photography Tips — Markdown Format
 
-    Incorporate the location by referencing specific environmental features of the Pollak Library (such as walkways, stairs, arches, windows, trees, courtyard, etc.) as natural framing elements, backdrops, or lighting opportunities. Use the setting to suggest composition, posing, or light usage ideas.
+    **Camera:** {camera}  
+    **Location:** {location} 
+    **Weather:** {weather}  
+    **Time:** {time}
+    ---
 
-    Each tip should:
-    - Start with a bolded title
-    - Include 1–2 sentences of factual explanation
-    - Be formatted as a bullet list
+    ### Instructions:
 
-    Do not suggest:
-    - Manual focus (use Eye AF or Lock-on AF instead)
-    - Auto exposure or exposure compensation
-    - Aperture smaller than f2.8 
-    - Creative styles or presets (shoot in RAW only)
-    - Don't use tripod unless doing some technique like long exposures
+    - Generate portrait photography tips for a shoot at Palm Tree Path  
+    - Consider partly cloudy weather and 3PM lighting conditions  
+    - Use architectural and natural features (arches, walkways, stairs, trees, windows, courtyard) as:  
+    - Natural frames  
+    - Backgrounds  
+    - Light modifiers
 
-    Always suggest:
-    - Apertures at f/2.8 or faster for portraits
-    - Use base ISO
-    - Natural Framing
-    - Embrace the time of day (e.g., golden hour, night time)
-    - It’s okay to go above 1/500s for shutter speed.  
+    ---
 
-    Tips must include specific suggestions for shutter speed, aperture, and ISO to achieve balanced exposure — not just to avoid camera shake.  
-    Use auto white balance unless under strong fluorescent lighting.
+    ### Output Format (Markdown):
+
+    - One overarching tip on how **weather and time of day** affect light and mood
+    - Follow with 3 bullet-point portrait tips  
+    Each tip must include:
+    - **Bolded title**
+    - 1–3 **bullet points** explaining how the technique uses:
+        - The location  
+        - The weather  
+        - The time of day (3PM light)
+    - One **bullet point**:  
+        `Shutter Speed`, `Aperture (f/2.8 or wider)`, `ISO (100 preferred)`
+
+    ---
+
+    ### Must Include:
+
+    - Aperture f/2.8 or faster  
+    - Base ISO (100) unless needed  
+    - Auto White Balance unless under strong fluorescent light  
+    - Natural environmental framing  
+    - Shutter speeds above 1/500s allowed  
+    - Embrace weather and time (cloud cover, sun angle, shadows)
+
+    ---
+
+    ### Do Not Include:
+    - Any repeating of the prompt in the response
+    - Manual focus (use Eye AF or Lock-on AF)  
+    - Auto exposure or exposure compensation  
+    - Apertures smaller than f/2.8  
+    - Creative styles or in-camera filters (RAW only)  
+    - Tripod usage unless doing long exposure  
+    - Manual white balance unless under fluorescent lighting  
+    - Example images or prompt text in output
+
+    ---
+
+    ### Goal:
+
+    Provide technically sound, creative portrait tips using Palm Tree Path, partly cloudy weather, and **late afternoon lighting**, formatted in React Native Markdown.
     """
 
-    response = llm(prompt, max_tokens=2500)
+    response = llm(prompt, max_tokens=3000)
     text = response["choices"][0]["text"].strip()
 
     if prompt.strip() in text:
         text = text.replace(prompt.strip(), "", 1).strip()
-
+        print(text)
     return jsonify({"output": text})
 
 @app.route("/run-main", methods=["POST"])

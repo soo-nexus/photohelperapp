@@ -57,12 +57,12 @@ export default function MapScreen({ navigation }) {
   const [selectedMarker, setSelectedMarker] = useState<MarkerType | null>(null);
   const [markerTips, setMarkerTips] = useState<{ [id: string]: string }>({});
   const [weatherQuery, setWeatherQuery] = useState("");
+  const [timeQuery, setTimeQuery] = useState("");
   const screenHeight = Dimensions.get("window").height;
   const dragY = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef(null);
   const scrollOffsetY = useRef(0);
   const scrollY = useRef(0);
-  console.log(screenHeight);
   const SNAP_POINTS = {
     collapsed: screenHeight,
     partial: screenHeight * 0.5,
@@ -170,8 +170,10 @@ export default function MapScreen({ navigation }) {
             location: selectedMarker!.name,
             additional_equipment: "None",
             weather: weatherQuery,
+            time: timeQuery,
           }),
         });
+        console.log("Time: ", timeQuery);
         const data = await response.json();
         const tip = data.tip || data.response || data.output || "No tip found.";
 
@@ -205,7 +207,9 @@ export default function MapScreen({ navigation }) {
         .limit(1);
       const loc = formAnswers?.at(0)?.["location"];
       const weather = formAnswers?.at(0)?.["weather_summary"];
+      const time = formAnswers?.at(0)?.["time"];
       setWeatherQuery(weather);
+      setTimeQuery(time);
       setLocation(loc);
       for (const value of formAnswers1!) {
         const locations = value.locations;
@@ -448,8 +452,28 @@ export default function MapScreen({ navigation }) {
                 ) : selectedMarker && markerTips[selectedMarker.id] ? (
                   <Markdown
                     style={{
-                      body: { backgroundColor: "transparent", padding: 0 },
-                      // You can also customize other markdown elements here
+                      body: {
+                        backgroundColor: "transparent",
+                        padding: 0, // optional for contrast
+                      },
+                      bullet_list: { marginLeft: 3 },
+                      strong: { fontWeight: "bold" },
+                      heading1: {
+                        fontSize: 22,
+                        marginLeft: -1,
+                        marginBottom: 4,
+                      },
+                      heading2: {
+                        fontSize: 20,
+                        marginLeft: -1,
+                        marginBottom: 4,
+                      },
+                      heading3: {
+                        fontSize: 18,
+                        marginLeft: -1,
+                        marginBottom: 4,
+                      },
+                      paragraph: { marginBottom: 8 },
                     }}
                   >
                     {markerTips[selectedMarker.id]

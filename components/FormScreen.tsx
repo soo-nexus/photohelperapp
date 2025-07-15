@@ -365,13 +365,18 @@ const Formscreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 16, flex: 1 },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff", // or whatever your background is
+  },
   heading: { fontSize: 24, fontWeight: "bold", marginBottom: 16 },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
     padding: 12,
-    marginBottom: 12,
+    width: 300,
     borderRadius: 8,
     backgroundColor: "#fff",
   },
@@ -390,13 +395,13 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginTop: 10,
+    marginTop: 5,
   },
   customButton: {
     borderWidth: 1,
     borderColor: "#888",
     borderRadius: 8,
-    paddingVertical: 10,
+    paddingVertical: 5,
     paddingHorizontal: 10,
     backgroundColor: "#f0f0f0",
   },
