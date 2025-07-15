@@ -12,21 +12,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { WebView } from "react-native-webview";
 export default function ChatScreen({ navigation }) {
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text>Chat</Text>
-        <Button
-          title="Go Back to Home"
-          onPress={() =>
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "Home" }],
-            })
-          }
-        />
-      </View>
+      <WebView
+        originWhitelist={["*"]}
+        source={require("../selenium 2/bot.html")}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        style={{ flex: 1 }}
+      />
     </SafeAreaView>
   );
 }

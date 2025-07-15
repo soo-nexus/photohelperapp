@@ -1,45 +1,54 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AppTabs from "./navigation/AppTabs";
-import HomeScreen from "./components/Homescreen";
-import FirstInstruction from "./components/FirstInstructions";
-import SecondInstructions from "./components/SecondInstructions";
 import OnboardingSwiper from "./navigation/OnboardingSwiper";
-// function Login() {
-//   const [session, setSession] = useState<Session | null>(null);
+import LoginScreen from "./components/LoginPage";
+import SignUpScreen from "./components/SignUpScreen";
+import { supabase } from "./lib/supabase";
 
-//   useEffect(() => {
-//     supabase.auth.getSession().then(({ data: { session } }) => {
-//       setSession(session);
-//     });
-
-//     supabase.auth.onAuthStateChange((_event, session) => {
-//       setSession(session);
-//     });
-//   }, []);
-
-//   return (
-//     <View>
-//       {session && session.user ? (
-//         <Account key={session.user.id} session={session} />
-//       ) : (
-//         <Auth />
-//       )}
-//     </View>
-//   );
-// }
+const RootStack = createNativeStackNavigator();
+const AuthStack = createNativeStackNavigator();
 const Stack = createNativeStackNavigator();
+function AuthStackScreen() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="SignUp" component={SignUpScreen} />
+    </AuthStack.Navigator>
+  );
+}
 
 export default function App() {
+  const [session, setSession] = useState(null);
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+
+    // Listen to auth changes
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Onboarding" component={OnboardingSwiper} />
+        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+          {/* Show onboarding only if you want */}
+          <RootStack.Screen name="Onboarding" component={OnboardingSwiper} />
+          <Stack.Screen name="Auth" component={AuthStackScreen} />
           <Stack.Screen name="Main" component={AppTabs} />
-        </Stack.Navigator>
+          {/* Conditionally show Auth or AppTabs */}
+        </RootStack.Navigator>
+        {/* <Stack.Screen name="Auth" component={AuthStackScreen} />
+        <Stack.Screen name="Main" component={AppTabs} /> */}
       </NavigationContainer>
     </SafeAreaProvider>
   );

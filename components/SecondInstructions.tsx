@@ -30,7 +30,7 @@ export default function SecondInstructions({ navigation }) {
         </Text>
         <TouchableOpacity
           style={styles.exploreButton}
-          onPress={() => navigation.replace("Main")}
+          onPress={() => navigation.replace("Auth")}
         >
           <Text style={styles.exploreText}>Get Started</Text>
         </TouchableOpacity>
