@@ -38,7 +38,9 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider
+      style={{ backgroundColor: "white", borderTopColor: "white" }}
+    >
       <NavigationContainer>
         <RootStack.Navigator screenOptions={{ headerShown: false }}>
           {/* Show onboarding only if you want */}

@@ -54,16 +54,16 @@ const Formscreen = ({ navigation }) => {
   const ref = useRef<typeof GooglePlacesAutocomplete>(null);
   const schoolDirectory = [
     "University of California, Berkeley",
-    "California State University, Fullerton",
     "University of California, Davis",
     "University of California, Los Angeles",
     "University of California, Irvine",
     "University of California, Santa Barbara",
-    "California Polytechnic State University",
-    "California State University, Sacramento",
     "University of California, Riverside",
     "University of California Merced",
     "University of California Santa Cruz",
+    "California Polytechnic State University",
+    "California State University, Sacramento",
+    "California State University, Fullerton",
   ];
 
   const handleSearch = (text) => {
