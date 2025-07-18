@@ -42,7 +42,7 @@ export default function AppTabs() {
         component={SearchScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search" size={size} color={color} />
+            <Ionicons name="document-text" size={size} color={color} />
           ),
         }}
       />

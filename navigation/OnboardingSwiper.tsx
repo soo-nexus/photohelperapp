@@ -2,7 +2,7 @@ import React from "react";
 import Swiper from "react-native-swiper";
 import { Dimensions, View, StyleSheet } from "react-native";
 
-import HomeScreen from "../components/Homescreen";
+import HomeScreenIntro from "../components/Homescreen";
 import FirstInstruction from "../components/FirstInstructions";
 import SecondInstructions from "../components/SecondInstructions";
 
@@ -18,7 +18,7 @@ export default function OnboardingSwiper({ navigation }) {
       activeDotStyle={styles.activeDot}
     >
       <View style={styles.slide}>
-        <HomeScreen navigation={navigation} />
+        <HomeScreenIntro navigation={navigation} />
       </View>
       <View style={styles.slide}>
         <FirstInstruction navigation={navigation} />

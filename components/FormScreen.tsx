@@ -61,9 +61,19 @@ const Formscreen = ({ navigation }) => {
     "University of California, Riverside",
     "University of California Merced",
     "University of California Santa Cruz",
+    "University of California San Diego",
+    "University of California",
     "California Polytechnic State University",
+    "California State Polytechnic University, Pomona",
     "California State University, Sacramento",
     "California State University, Fullerton",
+    "California State University, Long Beach",
+    "California State University, Sacramento",
+    "California State University, Bakersfield",
+    "San Jose State University",
+    "San Diego State University",
+    "California State University, Bakersfield",
+    "California State University, Sacramento",
   ];
 
   const handleSearch = (text) => {

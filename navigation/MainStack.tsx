@@ -2,7 +2,6 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import HomeScreen from "../components/Homescreen";
 import FormScreen from "../components/FormScreen";
 import MapScreen from "../components/MapScreen";
 import ChatScreen from "../components/ChatScreen";
@@ -11,11 +10,16 @@ import SearchScreen from "../components/SearchScreen";
 import UserScreen from "../components/UserScreen";
 import LoginScreen from "../components/LoginPage";
 import SignUpScreen from "../components/SignUpScreen";
+import HomeScreen from "../components/Homescreen copy";
 const Stack = createNativeStackNavigator();
 
 export default function MainStack() {
   return (
-    <Stack.Navigator initialRouteName="Form">
+    <Stack.Navigator
+      initialRouteName="Home"
+      screenOptions={{ headerShown: false }}
+    >
+      <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Form" component={FormScreen} />
       <Stack.Screen name="Map" component={MapScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
