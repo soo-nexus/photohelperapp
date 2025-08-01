@@ -343,7 +343,7 @@ const Formscreen = ({ navigation }) => {
   const isLastStep = () => step === 6;
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+    <View style={{ flex: 1 }}>
       <View style={styles.container}>
         {renderStep()}
 
@@ -370,7 +370,7 @@ const Formscreen = ({ navigation }) => {
           )}
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

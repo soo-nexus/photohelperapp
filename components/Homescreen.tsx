@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreenIntro({ navigation }) {
   const route = useRoute();
   const hideStatusBar = route.name === "Home";
   return (

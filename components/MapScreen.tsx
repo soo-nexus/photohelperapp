@@ -6,6 +6,7 @@ import { Loader } from "@googlemaps/js-api-loader";
 import MapView, { PROVIDER_GOOGLE, Marker, Circle } from "react-native-maps";
 import * as Location from "expo-location";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import { markerImages } from "../markerImages";
 import {
   Alert,
   Animated,
@@ -49,6 +50,8 @@ type MarkerType = {
 
 export default function MapScreen({ navigation }) {
   const [location, setLocation] = useState("");
+  const [locationImages, setLocationImages] = useState([]);
+  const [selectedImages, setSelectedImages] = useState([]);
   const [geoCode, setgeoCode] = useState<GeoCoord | null>(null);
   const [markerCor, setMarkerCor] = useState<MarkerType[]>([]);
   const [answers, setAnswer] = useState<any[] | null>();
@@ -141,6 +144,17 @@ export default function MapScreen({ navigation }) {
     });
   };
 
+  useEffect(() => {
+    if (!selectedMarker) return;
+
+    const markerName = selectedMarker.name;
+    const allImages = markerImages[location]?.[markerName] || [];
+
+    const shuffled = [...allImages].sort(() => 0.5 - Math.random());
+    const chosen = shuffled.slice(0, Math.min(6, allImages.length));
+
+    setSelectedImages(chosen);
+  }, [selectedMarker]); // 👈 only re-run when marker changes
   useEffect(() => {
     if (selectedMarker) {
       openPanel();
@@ -342,8 +356,9 @@ export default function MapScreen({ navigation }) {
   const sanitizeMarkdown = llmResponse
     .replace(/^\s{4}/gm, "") // remove leading 4-space indent
     .replace(/```/g, ""); // remove triple backticks
+
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+    <View style={{ flex: 1 }}>
       {loading ? (
         <View>
           <Text>Loading...</Text>
@@ -372,6 +387,7 @@ export default function MapScreen({ navigation }) {
                     title={marker.name}
                     onPress={() => {
                       console.log("Marker pressed:", marker); // ✅ Add this
+                      setLocationImages(markerImages[location][marker.name]);
                       setSelectedMarker(marker);
                     }}
                   />
@@ -450,36 +466,61 @@ export default function MapScreen({ navigation }) {
                     Loading tips...
                   </Text>
                 ) : selectedMarker && markerTips[selectedMarker.id] ? (
-                  <Markdown
-                    style={{
-                      body: {
-                        backgroundColor: "transparent",
-                        padding: 0, // optional for contrast
-                      },
-                      bullet_list: { marginLeft: 3 },
-                      strong: { fontWeight: "bold" },
-                      heading1: {
-                        fontSize: 22,
-                        marginLeft: -1,
-                        marginBottom: 4,
-                      },
-                      heading2: {
-                        fontSize: 20,
-                        marginLeft: -1,
-                        marginBottom: 4,
-                      },
-                      heading3: {
-                        fontSize: 18,
-                        marginLeft: -1,
-                        marginBottom: 4,
-                      },
-                      paragraph: { marginBottom: 8 },
-                    }}
-                  >
-                    {markerTips[selectedMarker.id]
-                      .replace(/^\s{4}/gm, "")
-                      .replace(/```/g, "")}
-                  </Markdown>
+                  <>
+                    <Markdown
+                      style={{
+                        body: { backgroundColor: "transparent", padding: 0 },
+                        bullet_list: { marginLeft: 3 },
+                        strong: { fontWeight: "bold" },
+                        heading1: {
+                          fontSize: 22,
+                          marginLeft: -1,
+                          marginBottom: 4,
+                        },
+                        heading2: {
+                          fontSize: 20,
+                          marginLeft: -1,
+                          marginBottom: 4,
+                        },
+                        heading3: {
+                          fontSize: 18,
+                          marginLeft: -1,
+                          marginBottom: 4,
+                        },
+                        paragraph: { marginBottom: 8 },
+                      }}
+                    >
+                      {markerTips[selectedMarker.id]
+                        .replace(/^\s{4}/gm, "")
+                        .replace(/```/g, "")}
+                    </Markdown>
+
+                    {/* 📸 Insert Random Images Below the Tips */}
+                    {selectedImages.length > 0 && (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          flexWrap: "wrap",
+                          justifyContent: "space-between",
+                          marginTop: 10,
+                        }}
+                      >
+                        {selectedImages.map((imgSrc, index) => (
+                          <Image
+                            key={index}
+                            source={imgSrc}
+                            style={{
+                              width: "48%",
+                              height: index % 2 === 0 ? 200 : 200,
+                              borderRadius: 12,
+                              marginBottom: 10,
+                            }}
+                            contentFit="cover"
+                          />
+                        ))}
+                      </View>
+                    )}
+                  </>
                 ) : (
                   <Text>No tips available.</Text>
                 )}
@@ -488,7 +529,7 @@ export default function MapScreen({ navigation }) {
           </Animated.View>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
